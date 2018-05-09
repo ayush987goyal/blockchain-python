@@ -25,11 +25,13 @@ def get_user_input():
 tx_amt = get_user_input()
 add_value(tx_amt)
 
-tx_amt = get_user_input()
-add_value(last_transaction=get_last_blockchain_value(),
-          transaction_amount=tx_amt)
+while True:
+    tx_amt = get_user_input()
+    add_value(tx_amt, get_last_blockchain_value())
 
-tx_amt = get_user_input()
-add_value(tx_amt, get_last_blockchain_value())
+    # Output the blockchain list to the console
+    for block in blockchain:
+        print('Outputting block')
+        print(block)
 
-print(blockchain)
+print('Done!')
