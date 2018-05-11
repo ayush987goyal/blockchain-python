@@ -1,7 +1,8 @@
 from functools import reduce
 import hashlib
-import json
 from collections import OrderedDict
+
+from hash_util import hash_string_256, hash_block
 # The reward we give to miners
 MINING_REWARD = 10
 
@@ -22,18 +23,9 @@ owner = 'Ayush'
 participants = {'Ayush'}
 
 
-def hash_block(block):
-    """Hashes a block and returns a string representation of it.
-
-    Arguments:
-        :block: The block that should be hashed.
-    """
-    return hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()
-
-
 def valid_proof(transactions, last_hash, proof):
     guess = (str(transactions) + str(last_hash) + str(proof)).encode()
-    guess_hash = hashlib.sha256(guess).hexdigest()
+    guess_hash = hash_string_256(guess)
     return guess_hash[0:2] == '00'
 
 
