@@ -1,4 +1,5 @@
-# Initializing our blockchain list
+import functools
+# The reward we give to miners
 MINING_REWARD = 10
 
 # Our starting block for the blockchain
@@ -37,16 +38,13 @@ def get_balance(participant):
     open_tx_sender = [tx['amount']
                       for tx in open_transactions if tx['sender'] == participant]
     tx_sender.append(open_tx_sender)
-    amount_sent = 0
-    for tx in tx_sender:
-        if len(tx) > 0:
-            amount_sent += tx[0]
+    amount_sent = functools.reduce(
+        lambda tx_sum, tx_amt: tx_sum + tx_amt[0] if len(tx_amt) > 0 else 0, tx_sender, 0)
+
     tx_recipient = [[tx['amount'] for tx in block['transactions']
                      if tx['recipient'] == participant] for block in blockchain]
-    amount_recieved = 0
-    for tx in tx_recipient:
-        if len(tx) > 0:
-            amount_recieved += tx[0]
+    amount_recieved = functools.reduce(
+        lambda tx_sum, tx_amt: tx_sum + tx_amt[0] if len(tx_amt) > 0 else 0, tx_recipient, 0)
 
     return amount_recieved - amount_sent
 
