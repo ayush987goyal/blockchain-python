@@ -5,6 +5,8 @@ import json
 import pickle
 
 from hash_util import hash_string_256, hash_block
+from block import Block
+
 # The reward we give to miners
 MINING_REWARD = 10
 
@@ -32,13 +34,10 @@ def load_data():
             blockchain = json.loads(file_content[0][:-1])
             updated_blockchain = []
             for block in blockchain:
-                updated_block = {
-                    'previous_hash': block['previous_hash'],
-                    'index': block['index'],
-                    'proof': block['proof'],
-                    'transactions': [OrderedDict(
-                        [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
-                }
+                converted_tx = [OrderedDict(
+                    [('sender', tx['sender']), ('recipient', tx['recipient']), ('amount', tx['amount'])]) for tx in block['transactions']]
+                updated_block = Block(
+                    block['index'], block['previous_hash'], converted_tx, block['proof'], block['timestamp'])
                 updated_blockchain.append(updated_block)
             blockchain = updated_blockchain
 
@@ -51,12 +50,7 @@ def load_data():
             open_transactions = updated_transactions
     except (IOError, IndexError):
         # Our starting block for the blockchain
-        genesis_block = {
-            'previous_hash': '',
-            'index': 0,
-            'transactions': [],
-            'proof': 100
-        }
+        genesis_block = Block(0, '', [], 100, 0)
         # Initializing our (empty) blockchain list
         blockchain = [genesis_block]
         # Unhandled transactions
@@ -104,7 +98,7 @@ def get_balance(participant):
     Arguments:
         :participant: The person for whom to calculate the balance.
     """
-    tx_sender = [[tx['amount'] for tx in block['transactions']
+    tx_sender = [[tx['amount'] for tx in block.transactions
                   if tx['sender'] == participant] for block in blockchain]
     open_tx_sender = [tx['amount']
                       for tx in open_transactions if tx['sender'] == participant]
@@ -112,7 +106,7 @@ def get_balance(participant):
     amount_sent = reduce(
         lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_sender, 0)
 
-    tx_recipient = [[tx['amount'] for tx in block['transactions']
+    tx_recipient = [[tx['amount'] for tx in block.transactions
                      if tx['recipient'] == participant] for block in blockchain]
     amount_recieved = reduce(
         lambda tx_sum, tx_amt: tx_sum + sum(tx_amt) if len(tx_amt) > 0 else tx_sum + 0, tx_recipient, 0)
@@ -177,12 +171,7 @@ def mine_block():
         [('sender', 'MINING'), ('recipient', owner), ('amount', MINING_REWARD)])
     copied_transactions = open_transactions[:]
     copied_transactions.append(reward_transaction)
-    block = {
-        'previous_hash': hashed_block,
-        'index': len(blockchain),
-        'transactions': copied_transactions,
-        'proof': proof
-    }
+    block = Block(len(blockchain), hashed_block, copied_transactions, proof)
     blockchain.append(block)
     return True
 
@@ -214,10 +203,10 @@ def verify_chain():
         if index == 0:
             continue
 
-        if block['previous_hash'] != hash_block(blockchain[index-1]):
+        if block.previous_hash != hash_block(blockchain[index-1]):
             return False
 
-        if not valid_proof(block['transactions'][:-1], block['previous_hash'], block['proof']):
+        if not valid_proof(block.transactions[:-1], block.previous_hash, block.proof):
             print('Proof of work is invalid')
             return False
 
@@ -239,7 +228,6 @@ while waiting_for_input:
     print('3: Output the blockchain blocks')
     print('4: Output participants')
     print('5: Check transaction validity')
-    print('h: Manipulate the chain')
     print('q: Quit')
     user_choice = get_user_choice()
 
@@ -269,14 +257,6 @@ while waiting_for_input:
         else:
             print('There are invalid transactions')
 
-    elif user_choice == 'h':
-        if len(blockchain) > 0:
-            blockchain[0] = {
-                'previous_hash': '',
-                'index': 0,
-                'transactions': [{'sender': 'Chris', 'recipient': 'Max', 'amount': 100}]
-            }
-
     elif user_choice == 'q':
         waiting_for_input = False
 
@@ -284,6 +264,7 @@ while waiting_for_input:
         print('Input was invalid, please pick a value from the list!')
 
     if not verify_chain():
+        print_blockchain_elements()
         print('Invalid blockchain!')
         break
     print('Balance of {}: {:6.2f}'.format(owner, get_balance(owner)))
