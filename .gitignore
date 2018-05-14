@@ -1,2 +1,3 @@
-blockchain.txt
+blockchain*.txt
+wallet*.txt
 __pycache__
